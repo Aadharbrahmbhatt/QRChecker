@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freshers Pass Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: #0d0d0d;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    #topBar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    #secretHeading {
+      color: #00ffcc;
+      font-size: 20px;
+      cursor: pointer;
+      text-shadow: 0 0 10px #00ffcc;
+    }
+
+    h1 {
+      color: #00ffcc;
+      text-shadow: 0 0 10px #00ffcc;
+      margin: 20px 0 10px;
+    }
+
+    form {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #00ffcc;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    input {
+      margin: 10px 0;
+      padding: 10px;
+      border: none;
+      width: 100%;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px;
+      background: #00ffcc;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    #pass {
+      margin-top: 30px;
+      padding: 20px;
+      border: 2px dashed #00ffcc;
+      display: none;
+      text-align: center;
+    }
+
+    #qr {
+      margin-top: 10px;
+    }
+
+    #errorMsg {
+      margin-top: 20px;
+      color: #ff3333;
+      text-shadow: 0 0 8px #ff3333;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="topBar">
+    <div id="secretHeading" ondblclick="askSecretCode()">Freshersh 2k25</div>
+  </div>
+
+  <h1>Freshers Party Entry Pass</h1>
+  <form id="passForm">
+    <input type="text" id="name" placeholder="Enter your name" required />
+    <input type="text" id="contact" placeholder="Enter your contact number" required />
+    <button type="submit">Generate Pass</button>
+  </form>
+
+  <div id="errorMsg"></div>
+
+  <div id="pass">
+    <h2 id="userName"></h2>
+    <p id="userContact"></p>
+    <div id="qr"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+    import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB6BVuHpAJuOms9t7YaS6DyGaalIoOIZ9w",
+      authDomain: "fir-project-de800.firebaseapp.com",
+      projectId: "fir-project-de800",
+      storageBucket: "fir-project-de800.appspot.com",
+      messagingSenderId: "752330359610",
+      appId: "1:752330359610:web:9e523b911e11083eb34603"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const enter = [
+      { name: "aadhar", number: "7777967903" },
+      { name: "divy", number: "9898507211" },
+      { name: "het", number: "8140399753" },
+      { name: "kirtan", number: "8238045830" }
+    ];
+
+    const form = document.getElementById('passForm');
+    const passDiv = document.getElementById('pass');
+    const qrDiv = document.getElementById('qr');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim().toLowerCase();
+      const contact = document.getElementById('contact').value.trim();
+
+      const isValid = enter.some(entry => entry.name.toLowerCase() === name && entry.number === contact);
+
+      if (!isValid) {
+        passDiv.style.display = "none";
+        qrDiv.innerHTML = "";
+        errorMsg.innerText = "First register your entry. Contact number: 8140399753";
+        return;
+      }
+
+      try {
+        errorMsg.innerText = "";
+        const docRef = await addDoc(collection(db, "passes"), {
+          name,
+          contact,
+          scanned: false,
+          createdAt: new Date(),
+          scanDevice: null
+        });
+
+        document.getElementById("userName").innerText = name;
+        document.getElementById("userContact").innerText = `Contact: ${contact}`;
+        const qrData = `${location.origin}/admin.html?token=${docRef.id}`;
+
+        qrDiv.innerHTML = "";
+        new QRCode(qrDiv, {
+          text: qrData,
+          width: 200,
+          height: 200,
+          colorDark: "#00ffcc",
+          colorLight: "#0d0d0d",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+
+        passDiv.style.display = "block";
+      } catch (err) {
+        console.error("Error creating pass:", err);
+        errorMsg.innerText = "Failed to generate pass. Try again.";
+      }
+    });
+
+    window.askSecretCode = () => {
+      const code = prompt("Enter admin access code:");
+      if (code === "2106") {
+        window.location.href = "admin.html";
+      }
+    };
+  </script>
+</body>
+</html>

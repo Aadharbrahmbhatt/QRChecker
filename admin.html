@@ -1,0 +1,54 @@
+<!-- admin.html (Admin QR Scanner + Dashboard) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Scanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: #0d0d0d;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #00ffcc;
+      text-shadow: 0 0 10px #00ffcc;
+    }
+    #reader {
+      width: 300px;
+      margin: auto;
+      border: 2px solid #00ffcc;
+      padding: 10px;
+    }
+    #resultBox {
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px dashed #00ffcc;
+      display: none;
+    }
+    .success {
+      color: #0f0;
+      text-shadow: 0 0 10px #0f0;
+    }
+    .error {
+      color: #f00;
+      text-shadow: 0 0 10px #f00;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin QR Scanner</h1>
+  <div id="reader"></div>
+  <div id="resultBox">
+    <h2 id="scanStatus"></h2>
+    <p id="scanDetails"></p>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
