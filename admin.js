@@ -123,6 +123,6 @@ scanner.start(
     }
   },
   (err) => {
-    console.warn("Scanner error:", err);
+    //console.warn("Scanner error:", err);
   }
 );
