@@ -108,7 +108,16 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-    import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      where,
+      doc,
+      updateDoc
+    } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyB6BVuHpAJuOms9t7YaS6DyGaalIoOIZ9w",
@@ -122,13 +131,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const enter = [
-      { name: "aadhar", number: "7777967903" },
-      { name: "divy", number: "9898507211" },
-      { name: "het", number: "8140399753" },
-      { name: "kirtan", number: "8238045830" }
-    ];
-
     const form = document.getElementById('passForm');
     const passDiv = document.getElementById('pass');
     const qrDiv = document.getElementById('qr');
@@ -139,16 +141,27 @@
       const name = document.getElementById('name').value.trim().toLowerCase();
       const contact = document.getElementById('contact').value.trim();
 
-      const isValid = enter.some(entry => entry.name.toLowerCase() === name && entry.number === contact);
-
-      if (!isValid) {
-        passDiv.style.display = "none";
-        qrDiv.innerHTML = "";
-        errorMsg.innerText = "First register your entry. Contact number: 8140399753";
-        return;
-      }
-
       try {
+        const q = query(collection(db, "student-data"), where("name", "==", name), where("number", "==", contact));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          errorMsg.innerText = "First register your entry. Contact number: 8140399753";
+          passDiv.style.display = "none";
+          return;
+        }
+
+        let alreadyScanned = false;
+        querySnapshot.forEach(docSnap => {
+          if (docSnap.data().count === 1) alreadyScanned = true;
+        });
+
+        if (alreadyScanned) {
+          errorMsg.innerText = "You have already entered the party. Duplicate QR not allowed.";
+          passDiv.style.display = "none";
+          return;
+        }
+
         errorMsg.innerText = "";
         const docRef = await addDoc(collection(db, "passes"), {
           name,
@@ -174,8 +187,8 @@
 
         passDiv.style.display = "block";
       } catch (err) {
-        console.error("Error creating pass:", err);
-        errorMsg.innerText = "Failed to generate pass. Try again.";
+        console.error("Error generating pass:", err);
+        errorMsg.innerText = "Something went wrong. Try again.";
       }
     });
 
