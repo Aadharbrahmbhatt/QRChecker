@@ -1,10 +1,14 @@
-// admin.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import {
   getFirestore,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -19,62 +23,106 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const resultBox = document.getElementById("resultBox");
-const scanStatus = document.getElementById("scanStatus");
-const scanDetails = document.getElementById("scanDetails");
+const resultDiv = document.getElementById("result");
 
-function showMessage(status, message, details) {
-  scanStatus.textContent = message;
-  scanStatus.className = status;
-  scanDetails.textContent = details;
-  resultBox.style.display = "block";
-}
+// ✅ Add participant
+window.addParticipant = async function () {
+  const name = document.getElementById("newName").value.trim().toLowerCase();
+  const number = document.getElementById("newNumber").value.trim();
+  if (!name || !number) return alert("Please fill both fields");
 
-function extractTokenFromUrl(text) {
   try {
-    const url = new URL(text);
-    return url.searchParams.get("token");
+    await addDoc(collection(db, "student-data"), {
+      name,
+      number,
+      count: 0
+    });
+    alert("✅ Participant added!");
+    document.getElementById("newName").value = "";
+    document.getElementById("newNumber").value = "";
   } catch (e) {
-    return null;
+    console.error("Error adding participant: ", e);
+    alert("❌ Failed to add participant");
   }
+};
+
+// ✅ Show styled message
+function showMessage(message, bgColor) {
+  resultDiv.innerText = message;
+  resultDiv.style.display = "block";
+  resultDiv.style.backgroundColor = bgColor;
+  resultDiv.style.color = "#fff";
+  resultDiv.style.textShadow = "0 0 10px #fff";
+
+  setTimeout(() => {
+    resultDiv.style.display = "none";
+  }, 5000);
 }
 
-function startScanner() {
-  const html5QrCode = new Html5Qrcode("reader");
+// ✅ Scanner setup
+const scanner = new Html5Qrcode("reader");
+const config = { fps: 10, qrbox: 250 };
+let scanning = true;
 
-  html5QrCode.start({ facingMode: "environment" }, {
-    fps: 10,
-    qrbox: 250
-  }, async (decodedText) => {
-    const token = extractTokenFromUrl(decodedText);
-    if (!token) return showMessage("error", "Invalid QR Code", decodedText);
+function pauseScanner() {
+  scanning = false;
+  scanner.pause();
+  setTimeout(() => {
+    scanner.resume();
+    scanning = true;
+  }, 4000);
+}
 
-    try {
-      const docRef = doc(db, "passes", token);
-      const docSnap = await getDoc(docRef);
+scanner.start(
+  { facingMode: "environment" },
+  config,
+  async (decodedText) => {
+    if (!scanning) return;
+    if (!decodedText.includes("token=")) return;
 
-      if (!docSnap.exists()) {
-        return showMessage("error", "QR Code Not Found", decodedText);
-      }
+    pauseScanner(); // prevent duplicate scans
 
-      const data = docSnap.data();
-      if (data.scanned) {
-        return showMessage("error", "Already Scanned", `Name: ${data.name}\nContact: ${data.contact}`);
-      }
+    const token = new URL(decodedText).searchParams.get("token");
+    const passRef = doc(db, "passes", token);
+    const passSnap = await getDoc(passRef);
 
-      await updateDoc(docRef, {
-        scanned: true,
-        scanDevice: navigator.userAgent
+    if (!passSnap.exists()) {
+      showMessage("❌ Invalid QR Code", "#8b0000");
+      return;
+    }
+
+    const data = passSnap.data();
+
+    if (data.scanned) {
+      showMessage("❌ Already Scanned!", "#aa0000");
+      return;
+    }
+
+    // ✅ Update passes
+    await updateDoc(passRef, {
+      scanned: true,
+      scanDevice: navigator.userAgent
+    });
+
+    // ✅ Update student-data count = 1
+    const q = query(
+      collection(db, "student-data"),
+      where("name", "==", data.name),
+      where("number", "==", data.contact)
+    );
+
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach(async (studentDoc) => {
+        await updateDoc(doc(db, "student-data", studentDoc.id), { count: 1 });
       });
 
-      return showMessage("success", "Scan Successful ✅", `Name: ${data.name}\nContact: ${data.contact}`);
-    } catch (err) {
-      console.error(err);
-      showMessage("error", "Scan Failed", err.message);
+      showMessage(`✅ ${data.name.toUpperCase()} has entered the party!`, "#006633");
+    } else {
+      showMessage("❌ User not found in database", "#b30000");
     }
-  }, (error) => {
-    console.warn("QR scan error", error);
-  });
-}
-
-startScanner();
+  },
+  (err) => {
+    console.warn("Scanner error:", err);
+  }
+);
