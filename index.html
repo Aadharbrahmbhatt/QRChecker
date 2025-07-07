@@ -2,108 +2,131 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Freshers Pass Generator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Freshers 2k25 Pass</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet" />
   <style>
-    body {
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
       font-family: 'Orbitron', sans-serif;
-      background: #0d0d0d;
+    }
+
+    body {
+      background: #000;
       color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
       min-height: 100vh;
       padding: 20px;
     }
 
-    #topBar {
-      width: 100%;
-      display: flex;
-      justify-content: flex-start;
-    }
-
-    #secretHeading {
-      color: #00ffcc;
-      font-size: 20px;
-      cursor: pointer;
-      text-shadow: 0 0 10px #00ffcc;
-    }
-
     h1 {
-      color: #00ffcc;
-      text-shadow: 0 0 10px #00ffcc;
-      margin: 20px 0 10px;
+      font-size: 2rem;
+      color: #00fff2;
+      text-shadow: 0 0 10px #00fff2;
+      margin-bottom: 20px;
+      cursor: pointer;
     }
 
     form {
-      background: #1a1a1a;
+      background: #111;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 0 15px #00ffcc;
+      box-shadow: 0 0 15px #00fff2;
+      width: 90%;
       max-width: 400px;
+      margin-bottom: 30px;
+    }
+
+    input, button {
       width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
     }
 
     input {
-      margin: 10px 0;
-      padding: 10px;
-      border: none;
-      width: 100%;
-      border-radius: 5px;
+      background: #222;
+      color: #0ff;
     }
 
     button {
-      padding: 10px;
-      background: #00ffcc;
-      border: none;
-      color: #000;
+      background: #ff00ff;
+      color: #fff;
       font-weight: bold;
-      border-radius: 5px;
       cursor: pointer;
-      width: 100%;
     }
 
-    #pass {
-      margin-top: 30px;
-      padding: 20px;
-      border: 2px dashed #00ffcc;
-      display: none;
+    .pass-card {
+      background: #111;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px #00fff2;
+      max-width: 400px;
+      width: 90%;
       text-align: center;
+      display: none;
+      color: white;
+      position: relative;
     }
 
-    #qr {
+    .qr-box {
+      margin-bottom: 20px;
+      background: #fff;
+      padding: 10px;
+      display: inline-block;
+    }
+
+    .info-line {
+      margin: 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .highlight-yellow {
+      color: #e2ff00;
+    }
+    .highlight-green {
+      color: #00ff99;
+    }
+    .highlight-blue {
+      color: #00d9ff;
+      text-decoration: underline;
+    }
+    .highlight-pink {
+      color: #ff00ff;
+    }
+
+    .footer-note {
       margin-top: 10px;
-    }
-
-    #errorMsg {
-      margin-top: 20px;
-      color: #ff3333;
-      text-shadow: 0 0 8px #ff3333;
+      font-size: 0.75rem;
+      color: #888;
     }
   </style>
 </head>
-
 <body>
-  <div id="topBar">
-    <div id="secretHeading" ondblclick="askSecretCode()">Freshersh 2k25</div>
-  </div>
+  <h1 ondblclick="goToAdmin()">FRESHERSH 2K25</h1>
 
-  <h1>Freshers Party Entry Pass</h1>
   <form id="passForm">
     <input type="text" id="name" placeholder="Enter your name" required />
     <input type="text" id="contact" placeholder="Enter your contact number" required />
     <button type="submit">Generate Pass</button>
   </form>
 
-  <div id="errorMsg"></div>
-
-  <div id="pass">
-    <h2 id="userName"></h2>
-    <p id="userContact"></p>
-    <div id="qr"></div>
+  <div class="pass-card" id="passCard">
+    <div class="qr-box" id="qrBox"></div>
+    <div class="info-line highlight-yellow"><b>VENUE:</b> LANDSCAPE RESTAURANT</div>
+    <div class="info-line highlight-green"><b>DATE:</b> September 30, 2023</div>
+    <div class="info-line highlight-green"><b>TIME:</b> 8:00 PM – 2:00 AM</div>
+    <div class="info-line highlight-yellow"><b>LOCATION:</b> <a href="https://maps.app.goo.gl/vFHagcfXJpFXPrMo9" class="highlight-blue" target="_blank">Click Here</a></div>
+    <div class="info-line highlight-yellow"><b>ADMIT:</b> ONE PERSON</div>
+    <div class="info-line highlight-pink"><b>NAME:</b> <span id="displayName"></span></div>
+    <div class="info-line highlight-pink"><b>ID:</b> <span id="displayContact"></span></div>
+    <p class="footer-note">This pass cannot be duplicated. Security features embedded.</p>
   </div>
 
   <script type="module">
@@ -111,13 +134,12 @@
     import {
       getFirestore,
       collection,
-      addDoc,
-      getDocs,
       query,
       where,
-      doc,
-      updateDoc
+      getDocs,
+      addDoc
     } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+    import * as QRCodeLib from 'https://cdn.skypack.dev/qrcode';
 
     const firebaseConfig = {
       apiKey: "AIzaSyB6BVuHpAJuOms9t7YaS6DyGaalIoOIZ9w",
@@ -131,71 +153,68 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const form = document.getElementById('passForm');
-    const passDiv = document.getElementById('pass');
-    const qrDiv = document.getElementById('qr');
-    const errorMsg = document.getElementById('errorMsg');
+    const form = document.getElementById("passForm");
+    const passCard = document.getElementById("passCard");
+    const qrBox = document.getElementById("qrBox");
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const name = document.getElementById('name').value.trim().toLowerCase();
-      const contact = document.getElementById('contact').value.trim();
+      const name = document.getElementById("name").value.trim().toLowerCase();
+      const contact = document.getElementById("contact").value.trim();
 
-      try {
-        const q = query(collection(db, "student-data"), where("name", "==", name), where("number", "==", contact));
-        const querySnapshot = await getDocs(q);
+      if (!name || !contact) return alert("Fill all fields");
 
-        if (querySnapshot.empty) {
-          errorMsg.innerText = "First register your entry. Contact number: 8140399753";
-          passDiv.style.display = "none";
-          return;
-        }
+      const studentQuery = query(
+        collection(db, "student-data"),
+        where("name", "==", name),
+        where("number", "==", contact)
+      );
 
-        let alreadyScanned = false;
-        querySnapshot.forEach(docSnap => {
-          if (docSnap.data().count === 1) alreadyScanned = true;
-        });
-
-        if (alreadyScanned) {
-          errorMsg.innerText = "You have already entered the party. Duplicate QR not allowed.";
-          passDiv.style.display = "none";
-          return;
-        }
-
-        errorMsg.innerText = "";
-        const docRef = await addDoc(collection(db, "passes"), {
-          name,
-          contact,
-          scanned: false,
-          createdAt: new Date(),
-          scanDevice: null
-        });
-
-        document.getElementById("userName").innerText = name;
-        document.getElementById("userContact").innerText = `Contact: ${contact}`;
-        const qrData = `${location.origin}/admin.html?token=${docRef.id}`;
-
-        qrDiv.innerHTML = "";
-        new QRCode(qrDiv, {
-          text: qrData,
-          width: 200,
-          height: 200,
-          colorDark: "#00ffcc",
-          colorLight: "#0d0d0d",
-          correctLevel: QRCode.CorrectLevel.H
-        });
-
-        passDiv.style.display = "block";
-      } catch (err) {
-        console.error("Error generating pass:", err);
-        errorMsg.innerText = "Something went wrong. Try again.";
+      const snapshot = await getDocs(studentQuery);
+      if (snapshot.empty) {
+        alert("First register your entry. Contact: 8140399753");
+        return;
       }
+
+      const studentDoc = snapshot.docs[0];
+      const studentData = studentDoc.data();
+
+      if (studentData.count === 1) {
+        alert("You’ve already entered the party! 🎉");
+        return;
+      }
+
+      const docRef = await addDoc(collection(db, "passes"), {
+        name,
+        contact,
+        scanned: false,
+        createdAt: new Date(),
+        scanDevice: null
+      });
+
+      const qrData = `${location.origin}/admin.html?token=${docRef.id}`;
+      qrBox.innerHTML = "";
+
+      QRCodeLib.toCanvas(qrData, { width: 160 }, (err, canvas) => {
+        if (err) {
+          alert("QR error!");
+          console.error(err);
+        } else {
+          qrBox.appendChild(canvas);
+          document.getElementById("displayName").innerText = name.toUpperCase();
+          document.getElementById("displayContact").innerText = contact;
+          passCard.style.display = "block";
+          form.style.display = "none";
+        }
+      });
     });
 
-    window.askSecretCode = () => {
-      const code = prompt("Enter admin access code:");
-      if (code === "2106") {
+    window.goToAdmin = function () {
+      const pin = prompt("Enter admin PIN:");
+      if (pin === "2106") {
         window.location.href = "admin.html";
+      } else {
+        alert("Incorrect PIN!");
       }
     };
   </script>
