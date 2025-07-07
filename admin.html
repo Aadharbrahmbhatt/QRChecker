@@ -2,82 +2,167 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Panel - Freshers QR</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>Admin Panel - Freshers 2K25</title>
+  <script type="module">
+    // ✅ Firebase SDK (Modules)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDoc,
+      doc,
+      updateDoc,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+    // ✅ Html5 QR Code Scanner
+    const qrScript = document.createElement("script");
+    qrScript.src = "https://unpkg.com/html5-qrcode";
+    document.head.appendChild(qrScript);
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB6BVuHpAJuOms9t7YaS6DyGaalIoOIZ9w",
+      authDomain: "fir-project-de800.firebaseapp.com",
+      projectId: "fir-project-de800",
+      storageBucket: "fir-project-de800.appspot.com",
+      messagingSenderId: "752330359610",
+      appId: "1:752330359610:web:9e523b911e11083eb34603"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.addParticipant = async function () {
+      const name = document.getElementById("name").value.trim().toLowerCase();
+      const number = document.getElementById("number").value.trim();
+
+      if (!name || !number) return alert("Enter both fields");
+
+      try {
+        await addDoc(collection(db, "student-data"), {
+          name,
+          number,
+          count: 0
+        });
+        alert("Participant added!");
+        document.getElementById("name").value = "";
+        document.getElementById("number").value = "";
+      } catch (e) {
+        console.error("Error:", e);
+        alert("Failed to add participant.");
+      }
+    };
+
+    // ✅ Wait for QR script to load
+    qrScript.onload = () => {
+      const qrScanner = new Html5Qrcode("qr-reader");
+      const config = { fps: 10, qrbox: 250 };
+
+      qrScanner.start(
+        { facingMode: "environment" },
+        config,
+        async (decodedText) => {
+          if (!decodedText.includes("token=")) return;
+          const token = new URL(decodedText).searchParams.get("token");
+          const passRef = doc(db, "passes", token);
+          const passSnap = await getDoc(passRef);
+
+          if (!passSnap.exists()) {
+            document.getElementById("result").innerText = "❌ Invalid QR";
+            return;
+          }
+
+          const data = passSnap.data();
+          if (data.scanned) {
+            document.getElementById("result").innerText = "❌ Already Scanned";
+            return;
+          }
+
+          await updateDoc(passRef, {
+            scanned: true,
+            scanDevice: navigator.userAgent
+          });
+
+          const q = query(
+            collection(db, "student-data"),
+            where("name", "==", data.name),
+            where("number", "==", data.contact)
+          );
+          const snap = await getDocs(q);
+          snap.forEach(async (docItem) => {
+            await updateDoc(doc(db, "student-data", docItem.id), {
+              count: 1
+            });
+          });
+
+          document.getElementById("result").innerText = `✅ Welcome ${data.name.toUpperCase()}`;
+        },
+        (err) => {
+          console.warn("QR Scan Error:", err);
+        }
+      );
+    };
+  </script>
 
   <style>
     body {
-      font-family: 'Orbitron', sans-serif;
-      background-color: #0d0d0d;
+      font-family: Arial, sans-serif;
+      background: #111;
       color: #fff;
       padding: 20px;
+      text-align: center;
     }
 
-    h1 {
-      color: #00ffcc;
-      text-shadow: 0 0 10px #00ffcc;
+    h2 {
+      color: #00ffe1;
+      text-shadow: 0 0 8px #00ffe1;
     }
 
-    .form-group {
-      margin: 10px 0;
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
     }
 
     input {
-      padding: 8px;
-      width: 100%;
-      border-radius: 5px;
-      border: none;
+      width: 200px;
     }
 
     button {
-      margin-top: 10px;
-      padding: 10px;
-      background-color: #00ffcc;
-      border: none;
+      background: #00ffe1;
+      color: #000;
       font-weight: bold;
       cursor: pointer;
-      border-radius: 5px;
+    }
+
+    #qr-reader {
+      margin-top: 20px;
+      width: 300px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     #result {
       margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      font-weight: bold;
-      font-size: 18px;
-      display: none;
-      text-align: center;
-    }
-
-    #reader {
-      margin-top: 30px;
-      width: 300px;
-      box-shadow: 0 0 15px #00ffcc;
-      border-radius: 10px;
+      font-size: 20px;
     }
   </style>
 </head>
-
 <body>
-  <h1>👨‍💻 Admin Panel - QR Scanner</h1>
+  <h2>Admin Panel - Freshers 2K25</h2>
 
-  <div class="form-group">
-    <label>Add New Participant Name:</label>
-    <input type="text" id="newName" />
-  </div>
-  <div class="form-group">
-    <label>Add Contact Number:</label>
-    <input type="text" id="newNumber" />
-    <button onclick="addParticipant()">➕ Add Participant</button>
+  <div>
+    <input type="text" id="name" placeholder="Enter name" />
+    <input type="text" id="number" placeholder="Enter number" />
+    <button onclick="addParticipant()">Add Participant</button>
   </div>
 
-  <hr />
-
-  <div id="reader"></div>
-  <div id="result"></div>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script type="module" src="admin.js"></script>
+  <div id="qr-reader"></div>
+  <div id="result">Scan result will appear here...</div>
 </body>
 </html>
