@@ -88,7 +88,7 @@
 
           const q = query(
             collection(db, "student-data"),
-            //where("name", "==", data.name),
+            where("name", "==", data.name),
             where("number", "==", data.contact)
           );
           const snap = await getDocs(q);
